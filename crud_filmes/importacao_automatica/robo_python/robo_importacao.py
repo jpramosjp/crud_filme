@@ -62,3 +62,45 @@ try:
             detalhes = WebDriverWait(listasFilmes[i],10).until(EC.presence_of_element_located((By.CLASS_NAME,'content-txt')))
 except Exception as e:
     print(e)
+
+
+
+
+# #
+# from cgitb import html
+# from urllib import response
+# from urllib.request import Request, urlopen
+# from urllib.error import URLError,HTTPError
+# from bs4 import BeautifulSoup
+
+# def trataHTML(html):
+#     return " ".join(html.split()).replace('> <','><')
+
+
+# url = 'https://www.adorocinema.com/filmes-todos/'
+
+
+# headers = {
+#    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.62 Safari/537.36'
+# }
+# try:
+#     req  = Request(url, headers=headers)
+#     responses = urlopen(req)
+#     htmls = responses.read().decode('utf-8')
+#     #htmls = trataHTML(htmls)
+#     soup = BeautifulSoup(htmls,'html.parser')
+
+#     filme={}
+    
+#     anuncio = soup.find('div',{'class': 'card entity-card entity-card-list cf'})
+#     listaFilmes = soup.findAll('li',{'class':'mdl'})
+#     for lista in listaFilmes:
+#         print(lista.find('a',{'class': 'meta-title-link'}).get_text())
+#         if lista.find('span',{'class': 'date'}):
+#             print(lista.find('span',{'class': 'date'}).get_text())
+#         print(lista.find('div',{'class': 'meta-body-item meta-body-info'}).find_all('span')[2].findNext('span').get_text())
+
+# except HTTPError as e:
+#     print(e.status,e.reason)
+# except URLError as e:
+#     print(e.reason)    
