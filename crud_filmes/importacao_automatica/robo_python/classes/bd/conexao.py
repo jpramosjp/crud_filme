@@ -8,15 +8,25 @@ class Conexao:
      
    def conectar(self):
       try:
-         self.conexao = pymysql.connect(host="localhost",user="root",passwd="",database="crud_filmes" ).cursor()
+         self.conexao = pymysql.connect(host="localhost",user="root",passwd="",database="crud_filmes" )
+         self.cursor = self.conexao.cursor()
       except Exception as e:
          print("Não foi possível conecatar com o banco: ", e )
 
    def requisitar(self,sql):
       try:
-         self.conexao.execute(sql)
-         teste = self.conexao.fetchall()
-         return teste
+         self.cursor.execute(sql)
+         retorno =  self.cursor.fetchall()
+
+         return retorno
+      except Exception as e:
+         print("Não foi possível fazer a requesicao: ", e)
+   
+   def inserir(self,sql):
+      try:
+         self.cursor.execute(sql)
+         self.conexao.commit()
+         return True
       except Exception as e:
          print("Não foi possível fazer a requesicao: ", e)
 

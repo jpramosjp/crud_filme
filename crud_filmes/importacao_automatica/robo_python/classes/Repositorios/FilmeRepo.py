@@ -1,4 +1,3 @@
-from operator import concat
 from classes.bd.Conexao import Conexao
 
 class FilmeRepo:
