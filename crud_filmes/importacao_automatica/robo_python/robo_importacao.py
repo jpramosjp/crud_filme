@@ -1,5 +1,7 @@
 from classes.Repositorios.FilmeRepo import FilmeRepo
 from classes.Repositorios.CategoriaRepo import CategoriaRepo
+from classes.Repositorios.FuncoesRepo import FuncoesRepo
+from classes.Repositorios.PessoasRepo import PessoasRepo
 from cgitb import html
 from urllib import response
 from urllib.request import Request, urlopen
@@ -8,6 +10,8 @@ from bs4 import BeautifulSoup
 
 filmeRepo = FilmeRepo()
 categoriaRepo = CategoriaRepo()
+funcoesRepo = FuncoesRepo()
+pessoasRepo = PessoasRepo()
 
 def verificaFilmeExiste(nomeFilme):
     retornoBuscaFilme = filmeRepo.buscarFilme(nomeFilme)
@@ -22,13 +26,31 @@ def verificarCategoriaExiste(categoria):
     return retornoBuscaCategoria
 
 def verificarPessoaExiste(nomePessoa):
-    retornoBuscaCategoria = categoriaRepo.buscarCategoria(nomePessoa)
-    if len(retornoBuscaCategoria) == 0:
+    retornoBuscaPessoa = pessoasRepo.buscarPesoa(nomePessoa)
+    if len(retornoBuscaPessoa) == 0:
         return False
-    return retornoBuscaCategoria
+    return retornoBuscaPessoa
 
-def rasparDadosPessoas():
-    print("teste")
+def rasparDadosPessoas(html):
+    url = f'https://www.adorocinema.com{html}'
+    reqPessoa =  Request(url, headers=headers)
+    responses = urlopen(reqPessoa)
+    htmlss = responses.read().decode('utf-8')
+    soupPessoa = BeautifulSoup(htmlss,'html.parser')
+    ativadade = soupPessoa.find_all('div',{'class' : 'meta-body-item'})[0].find('strong').text.replace('\n','').strip().upper()
+    retornoFuncoes = funcoesRepo.buscarFuncao(ativadade)
+    if (len(retornoFuncoes) == 0):
+        print("teste")
+        retornoFuncoes = funcoesRepo.inserirFuncao(ativadade)
+    nome = soupPessoa.find('div',{'class' : 'titlebar-title titlebar-title-lg'}).text.strip().upper()
+    idade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})[-1].find('strong').text
+    posicaoNacionalidade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})
+    nacionalidade = ''
+    if(posicaoNacionalidade[1].find('span').text.strip() == 'Nacionalidade'):
+        nacionalidade = posicaoNacionalidade[1].contents[2].replace('\n','').upper()
+    if(posicaoNacionalidade[2].find('span').text.strip() == 'Nacionalidade'):
+        nacionalidade = posicaoNacionalidade[2].contents[2].replace('\n','').upper()
+    return pessoasRepo.inserirPessoa(nome, idade, nacionalidade,str(retornoFuncoes[0][0]))
 
 
 def trataHTML(html):
@@ -66,10 +88,16 @@ try:
                     categoriaFilme = lista.find('div',{'class': 'meta-body-item meta-body-info'}).find_all('span')[2].findNext('span').get_text()
                     tipoFilme = verificarCategoriaExiste(categoriaFilme)
                     if(tipoFilme == False):
-                        tipoFilme = categoriaRepo.inserirCategoria(categoriaFilme)
+                        tipoFilme = categoriaRepo.inserirCategoria(categoriaFilme.upper())
                     direcao = lista.find('div', {'class' : 'meta-body-item meta-body-direction'}).find('a')
-                    if(verificaFilmeExiste(direcao.text) == False):
-
+                    diretor = verificarPessoaExiste(direcao.text.upper())
+                    if(diretor == False):
+                        diretor = rasparDadosPessoas(direcao['href']) 
+                    elenco = lista.find('div',{'class' : 'meta-body-item meta-body-actor'}).find('a')
+                    ator = verificarPessoaExiste(elenco.text.upper())
+                    if(ator == False) :
+                        ator = rasparDadosPessoas(elenco['href'])
+                    detalhes = lista.find('div',{'class' : 'content-txt'}).text.replace('\n','').upper()         
 
                         
 
