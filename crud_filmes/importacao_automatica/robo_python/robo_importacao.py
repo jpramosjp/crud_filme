@@ -1,3 +1,4 @@
+from ntpath import join
 from classes.Repositorios.FilmeRepo import FilmeRepo
 from classes.Repositorios.CategoriaRepo import CategoriaRepo
 from classes.Repositorios.FuncoesRepo import FuncoesRepo
@@ -18,14 +19,13 @@ from io import BytesIO
 import json
 from serpapi import GoogleSearch
 import urllib.request as fe
-
+import urllib.request
 
 
 filmeRepo = FilmeRepo()
 categoriaRepo = CategoriaRepo()
 funcoesRepo = FuncoesRepo()
 pessoasRepo = PessoasRepo()
-caminho = "C:/xampp/htdocs/crud_filmes/crud_filme/crud_filmes/imagens/"
 
 def verificaFilmeExiste(nomeFilme):
     retornoBuscaFilme = filmeRepo.buscarFilme(nomeFilme)
@@ -51,31 +51,30 @@ def rasparDadosPessoas(html):
     responses = urlopen(reqPessoa)
     htmlss = responses.read().decode('utf-8')
     soupPessoa = BeautifulSoup(htmlss,'html.parser')
-    ativadade = soupPessoa.find_all('div',{'class' : 'meta-body-item'})[0].find('strong').text.replace('\n','').strip().upper()
-    retornoFuncoes = funcoesRepo.buscarFuncao(ativadade)
-    if (len(retornoFuncoes) == 0):
-        print("teste")
-        retornoFuncoes = funcoesRepo.inserirFuncao(ativadade)
-    nome = soupPessoa.find('div',{'class' : 'titlebar-title titlebar-title-lg'}).text.strip().upper()
-    idade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})[-1].find('strong').text
-    posicaoNacionalidade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})
+    nome = ''
+    idade = ''
     nacionalidade = ''
-    if(posicaoNacionalidade[1].find('span').text.strip() == 'Nacionalidade'):
-        nacionalidade = posicaoNacionalidade[1].contents[2].replace('\n','').upper()
-    if(posicaoNacionalidade[2].find('span').text.strip() == 'Nacionalidade'):
-        nacionalidade = posicaoNacionalidade[2].contents[2].replace('\n','').upper()
+    retornoFuncoes = ''
+    try:
+        ativadade = soupPessoa.find_all('div',{'class' : 'meta-body-item'})[0].find('strong').text.replace('\n','').strip().upper()
+        retornoFuncoes = funcoesRepo.buscarFuncao(ativadade)
+        if (len(retornoFuncoes) == 0):
+            print("teste")
+            retornoFuncoes = funcoesRepo.inserirFuncao(ativadade)
+        nome = soupPessoa.find('div',{'class' : 'titlebar-title titlebar-title-lg'}).text.strip().upper()
+        idade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})[-1].find('strong').text
+        posicaoNacionalidade = soupPessoa.find('div',{'class' : 'meta-body'}).find_all('div',{'class' : 'meta-body-item'})
+        nacionalidade = ''
+        if(posicaoNacionalidade[1].find('span').text.strip() == 'Nacionalidade'):
+            nacionalidade = posicaoNacionalidade[1].contents[2].replace('\n','').upper()
+        if(posicaoNacionalidade[2].find('span').text.strip() == 'Nacionalidade'):
+            nacionalidade = posicaoNacionalidade[2].contents[2].replace('\n','').upper()
+    except:
+        pass    
     return pessoasRepo.inserirPessoa(nome, idade, nacionalidade,str(retornoFuncoes[0][0]))
 
 
 
-def criarPasta(caminho): 
-    try:  
-        os.mkdir(caminho)   
-    except Exception as e: 
-        print(e) 
-        criarPasta() 
-  
-    
 
 
 def pegarImagem(nomeFilme):
@@ -91,30 +90,16 @@ def pegarImagem(nomeFilme):
 
     search = GoogleSearch(params)
     results = search.get_dict()
+    opener=urllib.request.build_opener()
+    opener.addheaders=[('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19582')]
+    urllib.request.install_opener(opener)
+    fe.urlretrieve(results['images_results'][0]['original'], unidecode(nomeFilme.replace(':','')) + ".jpg")
+    with open(unidecode(nomeFilme.replace(':','')) + ".jpg", "rb") as arquivoImagem:
+        imagemBase64 = base64.b64encode(arquivoImagem.read())
+    os.remove(unidecode(nomeFilme.replace(':','')) + ".jpg")
+  
 
-    # print(json.dumps(results['suggested_searches'], indent=2, ensure_ascii=False))
-    print(json.dumps(results['images_results'], indent=2, ensure_ascii=False))
-    req =fe.urlretrieve(results['images_results'][0]['original'],'teste.jpg')
-    with open("teste.jpg", "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-    print(encoded_string)
-  
-    with open('encode.bin', "wb") as file:
-        file.write(encoded_string)
-    
-    file = open('encode.bin', 'rb')
-    byte = file.read()
-    file.close()
-  
-    decodeit = open('hello_level.jpeg', 'wb')
-    decodeit.write(base64.b64decode((byte)))
-    decodeit.close()
-    #r = str(req, 'utf-8') 
-    with open('base64.txt','wb') as f:
-        f.write(req)
-    #soupImagem = BeautifulSoup(req.text,'lxml')
-    with open('imageBase64.jpg','wb') as f2:
-        f2.write(base64.b64decode(req))
+    return imagemBase64
 def trataHTML(html):
     return " ".join(html.split()).replace('> <','><')
 
@@ -146,21 +131,40 @@ try:
             filme = lista.find('a',{'class': 'meta-title-link'}).get_text()
             if(verificaFilmeExiste(filme) == False):
                 if lista.find('span',{'class': 'date'}):
-                    dataLancamento = lista.find('span',{'class': 'date'}).get_text()
+                    dataLancamento = lista.find('span',{'class': 'date'}).get_text().upper()
                     categoriaFilme = lista.find('div',{'class': 'meta-body-item meta-body-info'}).find_all('span')[2].findNext('span').get_text()
                     tipoFilme = verificarCategoriaExiste(categoriaFilme)
                     if(tipoFilme == False):
                         tipoFilme = categoriaRepo.inserirCategoria(categoriaFilme.upper())
-                    direcao = lista.find('div', {'class' : 'meta-body-item meta-body-direction'}).find('a')
-                    diretor = verificarPessoaExiste(direcao.text.upper())
-                    if(diretor == False):
-                        diretor = rasparDadosPessoas(direcao['href']) 
+                    try:
+                        direcao = lista.find('div', {'class' : 'meta-body-item meta-body-direction'}).find('a')
+                        diretor = verificarPessoaExiste(direcao.text.upper())
+                        if(diretor == False):
+                            diretor = rasparDadosPessoas(direcao['href'])
+                    except:
+                        pass 
                     elenco = lista.find('div',{'class' : 'meta-body-item meta-body-actor'}).find('a')
-                    ator = verificarPessoaExiste(elenco.text.upper())
+                    if (elenco == None):
+                        continue
+                    ator = verificarPessoaExiste(elenco.text.upper())                   
                     if(ator == False) :
                         ator = rasparDadosPessoas(elenco['href'])
                     detalhes = lista.find('div',{'class' : 'content-txt'}).text.replace('\n','').upper()         
-                    imagemLink = pegarImagem(filme.strip().lower())
+                    imagemCriptografada = pegarImagem(filme.strip().lower())
+                    parametrosFilme = [     filme.strip().upper(),
+                                            dataLancamento,
+                                            str(tipoFilme[0][0]),
+                                            str(diretor[0][0]),
+                                            str(ator[0][0]),
+                                            detalhes,
+                                            str(imagemCriptografada.decode('utf-8'))
+                                      ]
+                    textoConvertido =[]
+                    for _ in parametrosFilme :
+                        textoConvertido.append("'".join(["", _ ,""]))
+                    retornoInserirFilme = filmeRepo.inserirFilme("," . join(textoConvertido))
+        looping += 1
+
                         
 
 

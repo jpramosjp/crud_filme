@@ -1,3 +1,6 @@
+from sqlite3 import Cursor
+from tkinter import EXCEPTION
+from matplotlib import interactive
 import pymysql
 
 class Conexao:
@@ -8,24 +11,34 @@ class Conexao:
      
    def conectar(self):
       try:
-         self.conexao = pymysql.connect(host="localhost",user="root",passwd="",database="crud_filmes" )
-         self.cursor = self.conexao.cursor()
+         self.conexao = pymysql.connect(host="localhost",user="root",passwd="",database="crud_filmes")
       except Exception as e:
          print("Não foi possível conecatar com o banco: ", e )
 
    def requisitar(self,sql):
       try:
-         self.cursor.execute(sql)
-         retorno =  self.cursor.fetchall()
-
+         while True:
+            try:
+               with self.conexao.cursor() as cursor:
+                  cursor.execute(sql)
+                  retorno =  cursor.fetchall()
+                  break
+            except pymysql.OperationalError:
+               self.conexao.ping(True)   
          return retorno
       except Exception as e:
          print("Não foi possível fazer a requesicao: ", e)
    
    def inserir(self,sql):
       try:
-         self.cursor.execute(sql)
-         self.conexao.commit()
+         while True:
+            try:
+               with self.conexao.cursor() as cursor:
+                  cursor.execute(sql)
+                  self.conexao.commit()
+                  break
+            except pymysql.OperationalError:
+               self.conexao(True)
          return True
       except Exception as e:
          print("Não foi possível fazer a requesicao: ", e)
